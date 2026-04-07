@@ -1,0 +1,16 @@
+services:
+  android-build:
+    build:
+      context: .
+      dockerfile: docker/android/Dockerfile
+    working_dir: /workspace
+    environment:
+      GRADLE_USER_HOME: /home/gradle/.gradle
+      ANDROID_SDK_ROOT: /opt/android-sdk
+    volumes:
+      - .:/workspace
+      - gradle-cache:/home/gradle/.gradle
+    command: gradle assembleDebug
+
+volumes:
+  gradle-cache:
