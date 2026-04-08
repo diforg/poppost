@@ -7,12 +7,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.poppost.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -32,6 +37,8 @@ fun DateFilterChips(
 ) {
     val today = LocalDate.now()
     val dates = (0 until dayCount).map { today.minusDays(it.toLong()) }
+    val allLabel = stringResource(id = R.string.filter_all)
+    val todayLabel = stringResource(id = R.string.filter_today)
 
     Row(
         modifier = modifier
@@ -44,7 +51,12 @@ fun DateFilterChips(
         FilterChip(
             selected = selectedDate == null,
             onClick = { onDateSelected(null) },
-            label = { Text("Todos") },
+            label = { Text(allLabel) },
+            leadingIcon = {
+                if (selectedDate == null) {
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null)
+                }
+            },
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -52,13 +64,18 @@ fun DateFilterChips(
         )
 
         dates.forEach { date ->
-            val label = if (date == today) "Hoje" else date.format(chipFormatter)
+            val label = if (date == today) todayLabel else date.format(chipFormatter)
             FilterChip(
                 selected = selectedDate == date,
                 onClick = {
                     onDateSelected(if (selectedDate == date) null else date)
                 },
                 label = { Text(label) },
+                leadingIcon = {
+                    if (selectedDate == date) {
+                        Icon(imageVector = Icons.Default.Check, contentDescription = null)
+                    }
+                },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,

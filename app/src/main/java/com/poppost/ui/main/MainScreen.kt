@@ -17,18 +17,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.poppost.R
 import com.poppost.ui.components.DateFilterChips
 import com.poppost.ui.components.EmptyPostsMessage
 import com.poppost.ui.components.PostCard
 import com.poppost.viewmodel.PostViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Tela principal: lista de posts ativos com filtro por data e FAB de criação.
@@ -47,6 +54,9 @@ fun MainScreen(
 ) {
     val posts by viewModel.activePosts.collectAsState()
     val selectedDate by viewModel.activeDateFilter.collectAsState()
+    val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier,
@@ -54,7 +64,7 @@ fun MainScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "PopPost",
+                        text = stringResource(id = R.string.app_name),
                         style = MaterialTheme.typography.titleLarge,
                     )
                 },
@@ -62,7 +72,7 @@ fun MainScreen(
                     IconButton(onClick = onNavigateToArchived) {
                         Icon(
                             imageVector = Icons.Default.Inventory2,
-                            contentDescription = "Arquivados",
+                            contentDescription = stringResource(id = R.string.cd_open_archived),
                         )
                     }
                 },
@@ -79,9 +89,13 @@ fun MainScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Novo post")
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(id = R.string.cd_create_post),
+                )
             }
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Column(
@@ -100,9 +114,9 @@ fun MainScreen(
 
             if (posts.isEmpty()) {
                 val emptyMessage = if (selectedDate != null)
-                    "Nenhum post nesta data.\nTente outro dia ou remova o filtro."
+                    stringResource(id = R.string.empty_posts_filtered)
                 else
-                    "Nenhum post ainda.\nToque em + para criar o primeiro!"
+                    stringResource(id = R.string.empty_posts_default)
 
                 EmptyPostsMessage(
                     message = emptyMessage,
@@ -116,8 +130,12 @@ fun MainScreen(
                     items(posts, key = { it.id }) { post ->
                         PostCard(
                             post = post,
-                            // Arquiva ao clicar – feedback via Snackbar chega na Feature 6
-                            onClick = { viewModel.archivePost(it.id) },
+                            onClick = {
+                                viewModel.archivePost(it.id)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(message = archivedSnackbarMessage)
+                                }
+                            },
                         )
                     }
                 }

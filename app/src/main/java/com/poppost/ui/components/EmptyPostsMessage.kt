@@ -14,15 +14,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.poppost.R
 
 /** Exibido quando a lista de posts está vazia. */
 @Composable
 fun EmptyPostsMessage(
     modifier: Modifier = Modifier,
-    message: String = "Nenhum post ainda.\nToque em + para criar o primeiro!",
+    message: String? = null,
 ) {
+    val resolvedMessage = message ?: stringResource(id = R.string.empty_posts_default)
+
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -30,13 +34,13 @@ fun EmptyPostsMessage(
     ) {
         Icon(
             imageVector = Icons.Default.ChatBubbleOutline,
-            contentDescription = null,
+            contentDescription = stringResource(id = R.string.cd_empty_posts),
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = message,
+            text = resolvedMessage,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             textAlign = TextAlign.Center,
