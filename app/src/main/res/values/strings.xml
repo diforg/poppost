@@ -1,4 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PopPost</string>
+    <string name="cd_open_archived">Abrir posts arquivados</string>
+    <string name="cd_create_post">Criar novo post</string>
+    <string name="cd_archive_post">Arquivar post</string>
+    <string name="cd_empty_posts">Lista de posts vazia</string>
+    <string name="cd_back">Voltar</string>
+
+    <string name="filter_all">Todos</string>
+    <string name="filter_today">Hoje</string>
+
+    <string name="empty_posts_default">Nenhum post ainda.\nToque em + para criar o primeiro!</string>
+    <string name="empty_posts_filtered">Nenhum post nesta data.\nTente outro dia ou remova o filtro.</string>
+    <string name="snackbar_post_archived">Post arquivado</string>
+
+    <string name="create_post_title">Novo post</string>
+    <string name="create_post_placeholder">A tela de criação completa chega na próxima etapa.</string>
+
+    <string name="archived_title">Arquivados</string>
+    <string name="archived_placeholder">Ainda não há gerenciamento de arquivados nesta etapa.</string>
 </resources>
