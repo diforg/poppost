@@ -4,6 +4,7 @@
     <string name="cd_open_archived">Abrir posts arquivados</string>
     <string name="cd_create_post">Criar novo post</string>
     <string name="cd_archive_post">Arquivar post</string>
+    <string name="cd_long_press_archived_post">Pressione e segure para ver opções do post arquivado</string>
     <string name="cd_empty_posts">Lista de posts vazia</string>
     <string name="cd_back">Voltar</string>
 

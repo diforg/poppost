@@ -19,10 +19,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.poppost.R
+import com.poppost.domain.model.Post
 import com.poppost.ui.components.EmptyPostsMessage
 import com.poppost.ui.components.PostCard
 import com.poppost.viewmodel.PostViewModel
@@ -35,6 +39,10 @@ fun ArchivedScreen(
     modifier: Modifier = Modifier,
 ) {
     val archivedUiState by viewModel.archivedUiState.collectAsState()
+
+    // Post selecionado via long press; nulo quando nenhum menu está aberto.
+    // Commit 2 usará este estado para exibir as opções de ação.
+    var selectedPost by remember { mutableStateOf<Post?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -72,10 +80,13 @@ fun ArchivedScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(archivedUiState.posts, key = { it.id }) { post ->
-                    PostCard(post = post)
+                    PostCard(
+                        post = post,
+                        // Long press seleciona o post; commit 2 exibirá as opções.
+                        onLongClick = { selectedPost = it },
+                    )
                 }
             }
         }
     }
 }
-

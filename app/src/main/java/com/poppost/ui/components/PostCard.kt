@@ -1,6 +1,7 @@
 package com.poppost.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,23 +27,38 @@ private val dateFormatter = DateTimeFormatter
 
 /**
  * Card reutilizável que exibe conteúdo e data formatada de um [Post].
- * Recebe [onClick] genérico – quem chama decide a ação (arquivar, desarquivar, etc.).
+ *
+ * @param onClick  ação executada no toque simples (opcional — ex.: arquivar).
+ * @param onLongClick  ação executada no toque longo (opcional — ex.: abrir menu de opções).
+ *
+ * Utiliza [combinedClickable] para suportar click e long-press simultaneamente.
+ * Quando nenhum dos dois é fornecido, o card fica não-interativo.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PostCard(
     post: Post,
-    onClick: ((Post) -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onClick: ((Post) -> Unit)? = null,
+    onLongClick: ((Post) -> Unit)? = null,
 ) {
     val formattedDate = Instant
         .ofEpochMilli(post.createdAt)
         .atZone(ZoneId.systemDefault())
         .format(dateFormatter)
 
-    val clickModifier = if (onClick != null) {
-        Modifier.clickable(
-            onClickLabel = stringResource(id = R.string.cd_archive_post),
-        ) { onClick(post) }
+    // combinedClickable agrega click e long-press num único modificador.
+    // É aplicado apenas quando pelo menos um dos callbacks é fornecido,
+    // para manter cards não-interativos quando nenhuma ação é esperada.
+    val interactionModifier = if (onClick != null || onLongClick != null) {
+        val longPressLabel = stringResource(R.string.cd_long_press_archived_post)
+        val clickLabel = stringResource(R.string.cd_archive_post)
+        Modifier.combinedClickable(
+            onClickLabel = if (onClick != null) clickLabel else null,
+            onLongClickLabel = if (onLongClick != null) longPressLabel else null,
+            onClick = { onClick?.invoke(post) },
+            onLongClick = { onLongClick?.invoke(post) },
+        )
     } else {
         Modifier
     }
@@ -50,7 +66,7 @@ fun PostCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(clickModifier),
+            .then(interactionModifier),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         ),
@@ -71,4 +87,3 @@ fun PostCard(
         }
     }
 }
-
