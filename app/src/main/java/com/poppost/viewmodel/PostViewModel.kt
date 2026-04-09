@@ -134,6 +134,18 @@ class PostViewModel(
         }
     }
 
+    /**
+     * Reseta o estado de criação para o valor inicial.
+     * Deve ser chamado quando a tela de criação é descartada sem publicar,
+     * evitando que estado obsoleto apareça numa próxima visita à tela.
+     */
+    fun resetCreatePostState() {
+        // Não reseta se uma submissão está em andamento para não interromper o fluxo
+        if (!_createPostUiState.value.isSubmitting) {
+            _createPostUiState.value = CreatePostUiState()
+        }
+    }
+
     fun archivePost(id: String) {
         viewModelScope.launch {
             repository.updateArchiveStatus(id = id, isArchived = true)

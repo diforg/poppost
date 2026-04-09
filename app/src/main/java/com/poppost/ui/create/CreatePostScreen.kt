@@ -1,15 +1,19 @@
 package com.poppost.ui.create
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,7 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import com.poppost.R
 import com.poppost.viewmodel.PostViewModel
 
@@ -54,6 +62,16 @@ fun CreatePostScreen(
     val errorEmpty = stringResource(R.string.create_post_error_empty)
     val errorTooLong = stringResource(R.string.create_post_error_too_long)
     val errorPersistence = stringResource(R.string.create_post_error_persistence)
+
+    // Bloqueia o gesto/botão de voltar durante o envio para evitar navegação
+    // enquanto o Room ainda está escrevendo. Fora do isSubmitting, navega normalmente.
+    BackHandler(enabled = uiState.isSubmitting) { /* absorve o gesto; aguarda o submit terminar */ }
+
+    // Reseta o estado de criação ao sair da tela sem publicar, para que a próxima
+    // visita comece com campo vazio (não recomposição de estado obsoleto).
+    DisposableEffect(Unit) {
+        onDispose { viewModel.resetCreatePostState() }
+    }
 
     // Consome eventos one-shot: navega em sucesso ou exibe snackbar em erro
     LaunchedEffect(Unit) {
@@ -131,6 +149,11 @@ fun CreatePostScreen(
                 enabled = !uiState.isSubmitting,
                 maxLines = 6,
                 textStyle = MaterialTheme.typography.bodyLarge,
+                // Permite publicar direto pelo botão "Done" do teclado virtual
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (uiState.isValid) viewModel.onCreatePostSubmit() }
+                ),
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -152,7 +175,22 @@ fun CreatePostScreen(
                 enabled = uiState.isValid && !uiState.isSubmitting,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(text = stringResource(R.string.create_post_publish))
+                if (uiState.isSubmitting) {
+                    // Exibe indicador de carregamento enquanto o Room persiste o post
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Text(text = stringResource(R.string.create_post_publish))
+                    }
+                } else {
+                    Text(text = stringResource(R.string.create_post_publish))
+                }
             }
         }
     }
