@@ -178,6 +178,7 @@ class PostViewModelTest {
         val viewModel = buildViewModel()
         val events = mutableListOf<PostViewModel.CreatePostUiEvent>()
         val collectJob = launch { viewModel.createPostEvents.collect { events.add(it) } }
+        advanceUntilIdle() // Garante coletor ativo antes da emissão imediata de erro
 
         // Apenas espaços em branco — inválido após trim
         viewModel.onCreateContentChanged("   ")
@@ -196,6 +197,7 @@ class PostViewModelTest {
         val viewModel = buildViewModel()
         val events = mutableListOf<PostViewModel.CreatePostUiEvent>()
         val collectJob = launch { viewModel.createPostEvents.collect { events.add(it) } }
+        advanceUntilIdle() // Garante coletor ativo antes da emissão imediata de erro
 
         viewModel.onCreateContentChanged("y".repeat(PostViewModel.MAX_POST_LENGTH + 1))
         viewModel.onCreatePostSubmit()
