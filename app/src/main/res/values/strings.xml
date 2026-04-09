@@ -8,6 +8,7 @@
     <string name="cd_long_press_archived_post">Pressione e segure para ver opções do post arquivado</string>
     <string name="cd_empty_posts">Lista de posts vazia</string>
     <string name="cd_back">Voltar</string>
+    <string name="cd_app_topbar_icon">Ícone do PopPost</string>
 
     <string name="filter_all">Todos</string>
     <string name="filter_today">Hoje</string>

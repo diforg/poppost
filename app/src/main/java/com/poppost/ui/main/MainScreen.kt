@@ -46,6 +46,13 @@ import com.poppost.ui.components.EmptyPostsMessage
 import com.poppost.ui.components.PostCard
 import com.poppost.viewmodel.PostViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+
 
 /**
  * Tela principal: lista de posts ativos com filtro por data e FAB de criação.
@@ -94,10 +101,19 @@ fun MainScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(id = R.mipmap.ic_launcher_round),
+                            contentDescription = stringResource(id = R.string.cd_app_topbar_icon),
+                            modifier = Modifier.size(24.dp),
+                            tint = androidx.compose.ui.graphics.Color.Unspecified,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(id = R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToArchived) {
