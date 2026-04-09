@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -114,6 +115,138 @@ class PostViewModelTest {
         assertEquals(1, viewModel.activePosts.value.size)
         assertEquals("a", viewModel.activePosts.value.first().id)
     }
+
+    // -------------------------------------------------------------------------
+    // Testes da nova API de criação (commit 6)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun onCreateContentChanged_withValidText_updatesCounterAndSetsValid() = runTest {
+        val viewModel = buildViewModel()
+        val text = "Olá mundo"
+
+        viewModel.onCreateContentChanged(text)
+
+        val state = viewModel.createPostUiState.value
+        assertEquals(text, state.content)
+        assertEquals(PostViewModel.MAX_POST_LENGTH - text.length, state.remainingCharacters)
+        assertTrue("isValid deveria ser true para texto válido", state.isValid)
+        assertEquals(null, state.validationError)
+    }
+
+    @Test
+    fun onCreateContentChanged_withTooLongText_setsErrorAndInvalidState() = runTest {
+        val viewModel = buildViewModel()
+        val tooLong = "x".repeat(PostViewModel.MAX_POST_LENGTH + 1)
+
+        viewModel.onCreateContentChanged(tooLong)
+
+        val state = viewModel.createPostUiState.value
+        assertEquals(false, state.isValid)
+        assertEquals(PostViewModel.CreatePostValidationError.TOO_LONG, state.validationError)
+        // remainingCharacters deve ser negativo
+        assertTrue("remainingCharacters deve ser negativo", state.remainingCharacters < 0)
+    }
+
+    @Test
+    fun onCreatePostSubmit_withValidContent_insertsPostEmitsSuccessAndResetsState() = runTest {
+        val viewModel = buildViewModel()
+        val events = mutableListOf<PostViewModel.CreatePostUiEvent>()
+        // Inicia coleta de eventos antes do submit
+        val collectJob = launch { viewModel.createPostEvents.collect { events.add(it) } }
+
+        viewModel.onCreateContentChanged("Meu post válido")
+        viewModel.onCreatePostSubmit()
+        advanceUntilIdle()
+        collectJob.cancel()
+
+        // Post inserido na lista ativa
+        assertEquals(1, viewModel.activePosts.value.size)
+        assertEquals("Meu post válido", viewModel.activePosts.value.first().content)
+        // Evento de sucesso emitido
+        assertEquals(1, events.size)
+        assertEquals(PostViewModel.CreatePostUiEvent.Success, events.first())
+        // Estado resetado após sucesso
+        val state = viewModel.createPostUiState.value
+        assertEquals("", state.content)
+        assertEquals(false, state.isSubmitting)
+        assertEquals(PostViewModel.MAX_POST_LENGTH, state.remainingCharacters)
+    }
+
+    @Test
+    fun onCreatePostSubmit_withBlankContent_emitsErrorEmptyAndDoesNotInsert() = runTest {
+        val viewModel = buildViewModel()
+        val events = mutableListOf<PostViewModel.CreatePostUiEvent>()
+        val collectJob = launch { viewModel.createPostEvents.collect { events.add(it) } }
+
+        // Apenas espaços em branco — inválido após trim
+        viewModel.onCreateContentChanged("   ")
+        viewModel.onCreatePostSubmit()
+        advanceUntilIdle()
+        collectJob.cancel()
+
+        assertTrue("Nenhum post deve ser inserido", viewModel.activePosts.value.isEmpty())
+        assertEquals(1, events.size)
+        val errorEvent = events.first() as PostViewModel.CreatePostUiEvent.Error
+        assertEquals(PostViewModel.CreatePostValidationError.EMPTY, errorEvent.reason)
+    }
+
+    @Test
+    fun onCreatePostSubmit_withTooLongContent_emitsErrorTooLongAndDoesNotInsert() = runTest {
+        val viewModel = buildViewModel()
+        val events = mutableListOf<PostViewModel.CreatePostUiEvent>()
+        val collectJob = launch { viewModel.createPostEvents.collect { events.add(it) } }
+
+        viewModel.onCreateContentChanged("y".repeat(PostViewModel.MAX_POST_LENGTH + 1))
+        viewModel.onCreatePostSubmit()
+        advanceUntilIdle()
+        collectJob.cancel()
+
+        assertTrue("Nenhum post deve ser inserido", viewModel.activePosts.value.isEmpty())
+        assertEquals(1, events.size)
+        val errorEvent = events.first() as PostViewModel.CreatePostUiEvent.Error
+        assertEquals(PostViewModel.CreatePostValidationError.TOO_LONG, errorEvent.reason)
+    }
+
+    @Test
+    fun onCreatePostSubmit_calledTwiceRapidly_insertsOnlyOnce() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onCreateContentChanged("Post único")
+        // Primeiro submit: lança coroutine mas não avança ainda (StandardTestDispatcher)
+        viewModel.onCreatePostSubmit()
+        // Segundo submit imediato: isSubmitting já deve ser true → deve ser ignorado
+        viewModel.onCreatePostSubmit()
+        advanceUntilIdle()
+
+        assertEquals(
+            "Somente um post deve ser inserido mesmo com dois submits rápidos",
+            1,
+            viewModel.activePosts.value.size
+        )
+    }
+
+    @Test
+    fun resetCreatePostState_whenNotSubmitting_clearsAllFields() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onCreateContentChanged("Texto que será descartado")
+        // Garante estado não-vazio antes do reset
+        assertEquals("Texto que será descartado", viewModel.createPostUiState.value.content)
+
+        viewModel.resetCreatePostState()
+
+        val state = viewModel.createPostUiState.value
+        assertEquals("", state.content)
+        assertEquals(PostViewModel.MAX_POST_LENGTH, state.remainingCharacters)
+        assertEquals(false, state.isValid)
+        assertEquals(false, state.isSubmitting)
+        assertEquals(null, state.validationError)
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     private fun buildViewModel(): PostViewModel {
         val repository = PostRepository(FakePostDao())
