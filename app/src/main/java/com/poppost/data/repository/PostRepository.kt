@@ -24,6 +24,10 @@ class PostRepository(
         postDao.insert(post.toEntity())
     }
 
+    suspend fun getAllPostsSnapshot(): List<Post> {
+        return postDao.getAllPostsSnapshot().map { it.toDomain() }
+    }
+
     suspend fun updateArchiveStatus(id: String, isArchived: Boolean): Int {
         return postDao.updateArchiveStatus(id = id, isArchived = isArchived)
     }

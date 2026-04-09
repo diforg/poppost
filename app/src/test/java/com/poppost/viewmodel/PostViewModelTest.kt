@@ -271,6 +271,10 @@ private class FakePostDao : PostDao {
 
     override fun getAllArchived(): Flow<List<PostEntity>> = archivedPostsFlow
 
+    override suspend fun getAllPostsSnapshot(): List<PostEntity> {
+        return posts.sortedByDescending { it.createdAt }
+    }
+
     override suspend fun updateArchiveStatus(id: String, isArchived: Boolean): Int {
         val index = posts.indexOfFirst { it.id == id }
         if (index == -1) return 0
