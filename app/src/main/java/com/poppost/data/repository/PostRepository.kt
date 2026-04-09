@@ -14,7 +14,11 @@ class PostRepository(
         postDao.getAllActive().map { entities -> entities.map { it.toDomain() } }
 
     fun getAllArchived(): Flow<List<Post>> =
-        postDao.getAllArchived().map { entities -> entities.map { it.toDomain() } }
+        postDao.getAllArchived().map { entities ->
+            entities
+                .map { it.toDomain() }
+                .filter { it.isArchived }
+        }
 
     suspend fun insert(post: Post) {
         postDao.insert(post.toEntity())
