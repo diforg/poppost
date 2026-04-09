@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -38,8 +40,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import com.poppost.R
 import com.poppost.viewmodel.PostViewModel
 
@@ -68,7 +68,7 @@ fun CreatePostScreen(
     BackHandler(enabled = uiState.isSubmitting) { /* absorve o gesto; aguarda o submit terminar */ }
 
     // Reseta o estado de criação ao sair da tela sem publicar, para que a próxima
-    // visita comece com campo vazio (não recomposição de estado obsoleto).
+    // visita comece com campo vazio (sem recomposição de estado obsoleto).
     DisposableEffect(Unit) {
         onDispose { viewModel.resetCreatePostState() }
     }
@@ -122,6 +122,10 @@ fun CreatePostScreen(
         ) {
             val fieldDescription = stringResource(R.string.cd_create_post_field)
 
+            // isError só ativa borda vermelha quando há conteúdo — evita indicar erro
+            // antes do usuário interagir com o campo (ex: campo vazio ao abrir a tela).
+            val showInlineError = uiState.validationError != null && uiState.content.isNotEmpty()
+
             OutlinedTextField(
                 value = uiState.content,
                 onValueChange = { viewModel.onCreateContentChanged(it) },
@@ -129,18 +133,20 @@ fun CreatePostScreen(
                     .fillMaxWidth()
                     .height(160.dp)
                     .semantics { contentDescription = fieldDescription },
+                // label fixo: sobe para cima do campo quando o usuário digita (M3)
+                label = { Text(stringResource(R.string.create_post_label)) },
                 placeholder = { Text(stringResource(R.string.create_post_hint)) },
-                // Exibe erro inline quando conteúdo está inválido e há algo digitado
-                isError = uiState.validationError != null,
+                isError = showInlineError,
                 supportingText = {
-                    val error = uiState.validationError
-                    if (error != null && uiState.content.isNotEmpty()) {
+                    if (showInlineError) {
+                        val message = when (uiState.validationError) {
+                            PostViewModel.CreatePostValidationError.EMPTY -> errorEmpty
+                            PostViewModel.CreatePostValidationError.TOO_LONG -> errorTooLong
+                            PostViewModel.CreatePostValidationError.PERSISTENCE -> errorPersistence
+                            null -> ""
+                        }
                         Text(
-                            text = when (error) {
-                                PostViewModel.CreatePostValidationError.EMPTY -> errorEmpty
-                                PostViewModel.CreatePostValidationError.TOO_LONG -> errorTooLong
-                                PostViewModel.CreatePostValidationError.PERSISTENCE -> errorPersistence
-                            },
+                            text = message,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -158,22 +164,32 @@ fun CreatePostScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Contador regressivo de caracteres
+            // Contador regressivo com semântica para leitores de tela
+            val charsRemaining = uiState.remainingCharacters
+            val counterDescription = if (charsRemaining >= 0) {
+                stringResource(R.string.cd_chars_remaining, charsRemaining)
+            } else {
+                stringResource(R.string.cd_chars_over_limit, -charsRemaining)
+            }
             Text(
-                text = "${uiState.remainingCharacters}",
+                text = "$charsRemaining",
                 style = MaterialTheme.typography.labelSmall,
-                color = if (uiState.remainingCharacters < 0)
+                color = if (charsRemaining < 0)
                     MaterialTheme.colorScheme.error
                 else
                     MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { contentDescription = counterDescription },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val publishButtonDescription = stringResource(R.string.cd_publish_button)
             Button(
                 onClick = { viewModel.onCreatePostSubmit() },
                 enabled = uiState.isValid && !uiState.isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = publishButtonDescription },
             ) {
                 if (uiState.isSubmitting) {
                     // Exibe indicador de carregamento enquanto o Room persiste o post
@@ -186,7 +202,7 @@ fun CreatePostScreen(
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
-                        Text(text = stringResource(R.string.create_post_publish))
+                        Text(text = stringResource(R.string.create_post_publishing))
                     }
                 } else {
                     Text(text = stringResource(R.string.create_post_publish))
