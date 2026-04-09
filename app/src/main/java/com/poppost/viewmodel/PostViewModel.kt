@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,6 +24,13 @@ import kotlinx.coroutines.launch
 class PostViewModel(
     private val repository: PostRepository
 ) : ViewModel() {
+
+    data class ArchivedUiState(
+        val posts: List<Post> = emptyList(),
+    ) {
+        val isEmpty: Boolean
+            get() = posts.isEmpty()
+    }
 
     data class CreatePostUiState(
         val content: String = "",
@@ -66,6 +74,10 @@ class PostViewModel(
 
     val archivedPosts: StateFlow<List<Post>> = repository.getAllArchived()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val archivedUiState: StateFlow<ArchivedUiState> = archivedPosts
+        .map { posts -> ArchivedUiState(posts = posts) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ArchivedUiState())
 
     fun createPost(content: String) {
         onCreateContentChanged(content)

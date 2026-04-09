@@ -14,7 +14,7 @@ interface PostDao {
     @Query("SELECT * FROM posts WHERE isArchived = 0 ORDER BY createdAt DESC")
     fun getAllActive(): Flow<List<PostEntity>>
 
-    @Query("SELECT * FROM posts WHERE isArchived = 1 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM posts WHERE isArchived != 0 ORDER BY createdAt DESC")
     fun getAllArchived(): Flow<List<PostEntity>>
 
     @Query("UPDATE posts SET isArchived = :isArchived WHERE id = :id")

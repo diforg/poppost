@@ -31,7 +31,7 @@ private val dateFormatter = DateTimeFormatter
 @Composable
 fun PostCard(
     post: Post,
-    onClick: (Post) -> Unit,
+    onClick: ((Post) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val formattedDate = Instant
@@ -39,12 +39,18 @@ fun PostCard(
         .atZone(ZoneId.systemDefault())
         .format(dateFormatter)
 
+    val clickModifier = if (onClick != null) {
+        Modifier.clickable(
+            onClickLabel = stringResource(id = R.string.cd_archive_post),
+        ) { onClick(post) }
+    } else {
+        Modifier
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(
-                onClickLabel = stringResource(id = R.string.cd_archive_post),
-            ) { onClick(post) },
+            .then(clickModifier),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         ),

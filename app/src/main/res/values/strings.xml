@@ -30,4 +30,5 @@
 
     <string name="archived_title">Arquivados</string>
     <string name="archived_placeholder">Ainda não há gerenciamento de arquivados nesta etapa.</string>
+    <string name="empty_archived_posts">Nenhum post arquivado ainda.</string>
 </resources>
