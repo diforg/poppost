@@ -40,9 +40,19 @@ fun ArchivedScreen(
 ) {
     val archivedUiState by viewModel.archivedUiState.collectAsState()
 
-    // Post selecionado via long press; nulo quando nenhum menu está aberto.
-    // Commit 2 usará este estado para exibir as opções de ação.
+    // Post selecionado via long press; nulo quando o sheet está fechado.
     var selectedPost by remember { mutableStateOf<Post?>(null) }
+
+    // Exibe o bottom sheet de opções quando um post é selecionado via long press.
+    // onUnarchiveClick e onDeleteClick serão implementados nos commits 3 e 4.
+    selectedPost?.let { post ->
+        ArchivedPostActionsSheet(
+            post = post,
+            onDismiss = { selectedPost = null },
+            onUnarchiveClick = { selectedPost = null }, // commit 3
+            onDeleteClick = { selectedPost = null },    // commit 4
+        )
+    }
 
     Scaffold(
         modifier = modifier,

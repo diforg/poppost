@@ -32,4 +32,9 @@
     <string name="archived_title">Arquivados</string>
     <string name="archived_placeholder">Ainda não há gerenciamento de arquivados nesta etapa.</string>
     <string name="empty_archived_posts">Nenhum post arquivado ainda.</string>
+    <string name="archived_options_title">Opções do post</string>
+    <string name="archived_action_unarchive">Desarquivar</string>
+    <string name="archived_action_delete">Excluir</string>
+    <string name="cd_action_unarchive">Desarquivar post</string>
+    <string name="cd_action_delete">Excluir post permanentemente</string>
 </resources>
