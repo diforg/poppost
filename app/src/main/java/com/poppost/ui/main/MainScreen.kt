@@ -1,5 +1,8 @@
 package com.poppost.ui.main
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +14,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -25,10 +31,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.poppost.R
 import com.poppost.ui.components.DateFilterChips
@@ -40,7 +49,7 @@ import kotlinx.coroutines.launch
 /**
  * Tela principal: lista de posts ativos com filtro por data e FAB de criação.
  *
- * @param viewModel instância compartilhada via [PostViewModelFactory]
+ * @param viewModel instância compartilhada pelo NavHost
  * @param onNavigateToCreate chamado quando o FAB é pressionado
  * @param onNavigateToArchived chamado quando o ícone de arquivados é pressionado
  */
@@ -52,11 +61,22 @@ fun MainScreen(
     onNavigateToArchived: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val posts by viewModel.activePosts.collectAsState()
     val selectedDate by viewModel.activeDateFilter.collectAsState()
     val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    var isMainMenuExpanded by remember { mutableStateOf(false) }
+
+    val csvRestoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            importCsv(context = context, viewModel = viewModel, uri = uri)
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -73,6 +93,34 @@ fun MainScreen(
                         Icon(
                             imageVector = Icons.Default.Inventory2,
                             contentDescription = stringResource(id = R.string.cd_open_archived),
+                        )
+                    }
+
+                    IconButton(onClick = { isMainMenuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = stringResource(id = R.string.cd_open_main_menu),
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = isMainMenuExpanded,
+                        onDismissRequest = { isMainMenuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = R.string.menu_backup)) },
+                            onClick = {
+                                isMainMenuExpanded = false
+                                // Commit 4 exibirá feedback explícito de sucesso/erro.
+                                viewModel.exportPostsToCsv(context = context)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = R.string.menu_restore)) },
+                            onClick = {
+                                isMainMenuExpanded = false
+                                csvRestoreLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+                            },
                         )
                     }
                 },
@@ -144,3 +192,14 @@ fun MainScreen(
     }
 }
 
+private fun importCsv(
+    context: android.content.Context,
+    viewModel: PostViewModel,
+    uri: Uri,
+) {
+    // Commit 3 conecta fluxo de restauração. Commit 4 adicionará feedback ao usuário.
+    viewModel.importPostsFromCsv(
+        context = context,
+        csvUri = uri,
+    )
+}
