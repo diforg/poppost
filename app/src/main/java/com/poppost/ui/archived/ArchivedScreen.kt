@@ -1,13 +1,13 @@
 package com.poppost.ui.archived
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,20 +17,25 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.poppost.R
+import com.poppost.ui.components.EmptyPostsMessage
+import com.poppost.ui.components.PostCard
+import com.poppost.viewmodel.PostViewModel
 
-/** Placeholder — implementação completa na Feature 6. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArchivedScreen(
+    viewModel: PostViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val archivedUiState by viewModel.archivedUiState.collectAsState()
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -51,27 +56,24 @@ fun ArchivedScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+        if (archivedUiState.isEmpty) {
+            EmptyPostsMessage(
+                message = stringResource(id = R.string.empty_archived_posts),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(horizontal = 24.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Inventory2,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(id = R.string.archived_placeholder),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                )
+                items(archivedUiState.posts, key = { it.id }) { post ->
+                    PostCard(post = post)
+                }
             }
         }
     }

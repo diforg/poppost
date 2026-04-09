@@ -46,7 +46,10 @@ fun PopPostApp(modifier: Modifier = Modifier) {
             )
         }
         composable(NavRoutes.ARCHIVED) {
-            ArchivedScreen(onNavigateBack = { navController.popBackStack() })
+            ArchivedScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+            )
         }
     }
 }
