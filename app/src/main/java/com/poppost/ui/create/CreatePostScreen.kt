@@ -1,44 +1,84 @@
 package com.poppost.ui.create
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.poppost.R
 import com.poppost.viewmodel.PostViewModel
 
-/** Placeholder — implementação completa na Feature 5. */
+/**
+ * Tela de criação de post.
+ * Observa [PostViewModel.createPostUiState] para estado reativo do formulário
+ * e coleta [PostViewModel.createPostEvents] como eventos one-shot para navegar
+ * após sucesso ou exibir erro de persistência.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("UNUSED_PARAMETER")
 @Composable
 fun CreatePostScreen(
     viewModel: PostViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val uiState by viewModel.createPostUiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val errorEmpty = stringResource(R.string.create_post_error_empty)
+    val errorTooLong = stringResource(R.string.create_post_error_too_long)
+    val errorPersistence = stringResource(R.string.create_post_error_persistence)
+
+    // Consome eventos one-shot: navega em sucesso ou exibe snackbar em erro
+    LaunchedEffect(Unit) {
+        viewModel.createPostEvents.collect { event ->
+            when (event) {
+                is PostViewModel.CreatePostUiEvent.Success -> onNavigateBack()
+                is PostViewModel.CreatePostUiEvent.Error -> {
+                    val message = when (event.reason) {
+                        PostViewModel.CreatePostValidationError.EMPTY -> errorEmpty
+                        PostViewModel.CreatePostValidationError.TOO_LONG -> errorTooLong
+                        PostViewModel.CreatePostValidationError.PERSISTENCE -> errorPersistence
+                    }
+                    snackbarHostState.showSnackbar(message)
+                    viewModel.clearCreatePostValidationError()
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(id = R.string.create_post_title)) },
+                title = { Text(text = stringResource(R.string.create_post_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -54,27 +94,65 @@ fun CreatePostScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
+                .padding(innerPadding)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.End,
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(horizontal = 24.dp),
+            val fieldDescription = stringResource(R.string.cd_create_post_field)
+
+            OutlinedTextField(
+                value = uiState.content,
+                onValueChange = { viewModel.onCreateContentChanged(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .semantics { contentDescription = fieldDescription },
+                placeholder = { Text(stringResource(R.string.create_post_hint)) },
+                // Exibe erro inline quando conteúdo está inválido e há algo digitado
+                isError = uiState.validationError != null,
+                supportingText = {
+                    val error = uiState.validationError
+                    if (error != null && uiState.content.isNotEmpty()) {
+                        Text(
+                            text = when (error) {
+                                PostViewModel.CreatePostValidationError.EMPTY -> errorEmpty
+                                PostViewModel.CreatePostValidationError.TOO_LONG -> errorTooLong
+                                PostViewModel.CreatePostValidationError.PERSISTENCE -> errorPersistence
+                            },
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                },
+                enabled = !uiState.isSubmitting,
+                maxLines = 6,
+                textStyle = MaterialTheme.typography.bodyLarge,
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Contador regressivo de caracteres
+            Text(
+                text = "${uiState.remainingCharacters}",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (uiState.remainingCharacters < 0)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { viewModel.onCreatePostSubmit() },
+                enabled = uiState.isValid && !uiState.isSubmitting,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(id = R.string.create_post_placeholder),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                )
+                Text(text = stringResource(R.string.create_post_publish))
             }
         }
     }

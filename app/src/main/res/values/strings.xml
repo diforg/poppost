@@ -16,6 +16,12 @@
 
     <string name="create_post_title">Novo post</string>
     <string name="create_post_placeholder">A tela de criação completa chega na próxima etapa.</string>
+    <string name="create_post_hint">O que devo fazer?</string>
+    <string name="create_post_publish">Publicar</string>
+    <string name="create_post_error_empty">O post não pode estar vazio.</string>
+    <string name="create_post_error_too_long">O post ultrapassou o limite de 120 caracteres.</string>
+    <string name="create_post_error_persistence">Erro ao salvar o post. Tente novamente.</string>
+    <string name="cd_create_post_field">Campo de texto do post</string>
 
     <string name="archived_title">Arquivados</string>
     <string name="archived_placeholder">Ainda não há gerenciamento de arquivados nesta etapa.</string>
