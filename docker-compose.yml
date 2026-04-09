@@ -9,6 +9,7 @@ services:
       ANDROID_SDK_ROOT: /opt/android-sdk
     volumes:
       - .:/workspace
+      - ./docker/android/local.properties:/workspace/local.properties:ro
       - gradle-cache:/home/gradle/.gradle
     command: gradle assembleDebug
 
