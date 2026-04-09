@@ -19,5 +19,8 @@ interface PostDao {
 
     @Query("UPDATE posts SET isArchived = :isArchived WHERE id = :id")
     suspend fun updateArchiveStatus(id: String, isArchived: Boolean): Int
+
+    @Query("DELETE FROM posts WHERE id = :id")
+    suspend fun deleteById(id: String): Int
 }
 
