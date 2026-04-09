@@ -23,11 +23,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.poppost.R
+import com.poppost.viewmodel.PostViewModel
 
 /** Placeholder — implementação completa na Feature 5. */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun CreatePostScreen(
+    viewModel: PostViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
