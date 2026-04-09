@@ -1,10 +1,13 @@
 package com.poppost.viewmodel
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.poppost.data.repository.PostCsvBackupService
+import com.poppost.data.repository.PostCsvRestoreService
 import com.poppost.data.repository.PostRepository
+import com.poppost.data.repository.CsvImportResult
 import com.poppost.domain.model.Post
 import java.io.File
 import java.time.Instant
@@ -29,6 +32,7 @@ class PostViewModel(
 ) : ViewModel() {
 
     private val csvBackupService = PostCsvBackupService()
+    private val csvRestoreService = PostCsvRestoreService()
 
     data class ArchivedUiState(
         val posts: List<Post> = emptyList(),
@@ -190,6 +194,33 @@ class PostViewModel(
                 val allPosts = repository.getAllPostsSnapshot()
                 csvBackupService.exportAllPosts(context = context, posts = allPosts)
             }
+            onResult(result)
+        }
+    }
+
+    fun importPostsFromCsv(
+        context: Context,
+        csvUri: Uri,
+        onResult: (Result<CsvImportResult>) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val existingIds = repository
+                    .getAllPostsSnapshot()
+                    .map { it.id }
+                    .toSet()
+
+                val payload = csvRestoreService.prepareImport(
+                    context = context,
+                    csvUri = csvUri,
+                    existingPostIds = existingIds,
+                )
+
+                // Duplicatas por ID sao filtradas antes de inserir.
+                repository.insertAll(payload.postsToInsert)
+                payload.result
+            }
+
             onResult(result)
         }
     }
