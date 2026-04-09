@@ -14,6 +14,7 @@
     <string name="empty_posts_default">Nenhum post ainda.\nToque em + para criar o primeiro!</string>
     <string name="empty_posts_filtered">Nenhum post nesta data.\nTente outro dia ou remova o filtro.</string>
     <string name="snackbar_post_archived">Post arquivado</string>
+    <string name="snackbar_post_unarchived">Post desarquivado</string>
 
     <string name="create_post_title">Novo post</string>
     <string name="create_post_label">Seu post</string>

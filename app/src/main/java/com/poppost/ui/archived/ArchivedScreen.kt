@@ -13,6 +13,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -21,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,6 +33,7 @@ import com.poppost.domain.model.Post
 import com.poppost.ui.components.EmptyPostsMessage
 import com.poppost.ui.components.PostCard
 import com.poppost.viewmodel.PostViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +43,9 @@ fun ArchivedScreen(
     modifier: Modifier = Modifier,
 ) {
     val archivedUiState by viewModel.archivedUiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val unarchivedMessage = stringResource(id = R.string.snackbar_post_unarchived)
 
     // Post selecionado via long press; nulo quando o sheet está fechado.
     var selectedPost by remember { mutableStateOf<Post?>(null) }
@@ -49,7 +56,13 @@ fun ArchivedScreen(
         ArchivedPostActionsSheet(
             post = post,
             onDismiss = { selectedPost = null },
-            onUnarchiveClick = { selectedPost = null }, // commit 3
+            onUnarchiveClick = {
+                viewModel.unarchivePost(it.id)
+                selectedPost = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(message = unarchivedMessage)
+                }
+            },
             onDeleteClick = { selectedPost = null },    // commit 4
         )
     }
@@ -72,6 +85,7 @@ fun ArchivedScreen(
                 ),
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         if (archivedUiState.isEmpty) {
