@@ -3,6 +3,7 @@
     <string name="app_name">PopPost</string>
     <string name="cd_open_archived">Abrir posts arquivados</string>
     <string name="cd_create_post">Criar novo post</string>
+    <string name="cd_open_main_menu">Abrir menu principal</string>
     <string name="cd_archive_post">Arquivar post</string>
     <string name="cd_long_press_archived_post">Pressione e segure para ver opções do post arquivado</string>
     <string name="cd_empty_posts">Lista de posts vazia</string>
@@ -10,6 +11,12 @@
 
     <string name="filter_all">Todos</string>
     <string name="filter_today">Hoje</string>
+    <string name="menu_backup">Backup</string>
+    <string name="menu_restore">Restaurar</string>
+    <string name="backup_success">Backup salvo em: %1$s</string>
+    <string name="backup_error">Falha ao gerar backup CSV.</string>
+    <string name="restore_success">Restauracao concluida. Importados: %1$d, duplicados: %2$d, invalidos: %3$d.</string>
+    <string name="restore_error">Falha ao restaurar CSV.</string>
 
     <string name="empty_posts_default">Nenhum post ainda.\nToque em + para criar o primeiro!</string>
     <string name="empty_posts_filtered">Nenhum post nesta data.\nTente outro dia ou remova o filtro.</string>
