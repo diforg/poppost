@@ -280,6 +280,15 @@ private class FakePostDao : PostDao {
         return 1
     }
 
+    override suspend fun deleteById(id: String): Int {
+        val removed = posts.removeAll { it.id == id }
+        if (removed) {
+            publish()
+            return 1
+        }
+        return 0
+    }
+
     private fun publish() {
         activePostsFlow.value = posts
             .filter { !it.isArchived }

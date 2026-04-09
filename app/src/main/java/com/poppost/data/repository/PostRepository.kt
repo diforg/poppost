@@ -27,5 +27,9 @@ class PostRepository(
     suspend fun updateArchiveStatus(id: String, isArchived: Boolean): Int {
         return postDao.updateArchiveStatus(id = id, isArchived = isArchived)
     }
+
+    suspend fun deleteById(id: String): Int {
+        return postDao.deleteById(id)
+    }
 }
 

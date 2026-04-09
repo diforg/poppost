@@ -170,6 +170,12 @@ class PostViewModel(
         }
     }
 
+    fun deletePost(id: String) {
+        viewModelScope.launch {
+            repository.deleteById(id)
+        }
+    }
+
     fun filterByDate(date: LocalDate?) {
         _activeDateFilter.value = date
     }

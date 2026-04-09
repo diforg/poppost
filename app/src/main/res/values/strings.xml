@@ -4,6 +4,7 @@
     <string name="cd_open_archived">Abrir posts arquivados</string>
     <string name="cd_create_post">Criar novo post</string>
     <string name="cd_archive_post">Arquivar post</string>
+    <string name="cd_long_press_archived_post">Pressione e segure para ver opções do post arquivado</string>
     <string name="cd_empty_posts">Lista de posts vazia</string>
     <string name="cd_back">Voltar</string>
 
@@ -13,6 +14,8 @@
     <string name="empty_posts_default">Nenhum post ainda.\nToque em + para criar o primeiro!</string>
     <string name="empty_posts_filtered">Nenhum post nesta data.\nTente outro dia ou remova o filtro.</string>
     <string name="snackbar_post_archived">Post arquivado</string>
+    <string name="snackbar_post_unarchived">Post desarquivado</string>
+    <string name="snackbar_post_deleted">Post excluido permanentemente</string>
 
     <string name="create_post_title">Novo post</string>
     <string name="create_post_label">Seu post</string>
@@ -31,4 +34,13 @@
     <string name="archived_title">Arquivados</string>
     <string name="archived_placeholder">Ainda não há gerenciamento de arquivados nesta etapa.</string>
     <string name="empty_archived_posts">Nenhum post arquivado ainda.</string>
+    <string name="archived_options_title">Opções do post</string>
+    <string name="archived_action_unarchive">Desarquivar</string>
+    <string name="archived_action_delete">Excluir</string>
+    <string name="archived_delete_dialog_title">Excluir post?</string>
+    <string name="archived_delete_dialog_message">Esta acao nao pode ser desfeita.</string>
+    <string name="archived_delete_confirm">Excluir</string>
+    <string name="archived_delete_cancel">Cancelar</string>
+    <string name="cd_action_unarchive">Desarquivar post</string>
+    <string name="cd_action_delete">Excluir post permanentemente</string>
 </resources>
