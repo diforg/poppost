@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.poppost.R
+import com.poppost.data.repository.CsvImportResult
 import com.poppost.ui.components.DateFilterChips
 import com.poppost.ui.components.EmptyPostsMessage
 import com.poppost.ui.components.PostCard
@@ -65,6 +66,7 @@ fun MainScreen(
     val posts by viewModel.activePosts.collectAsState()
     val selectedDate by viewModel.activeDateFilter.collectAsState()
     val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
+    val backupErrorMessage = stringResource(id = R.string.backup_error)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -74,7 +76,16 @@ fun MainScreen(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
-            importCsv(context = context, viewModel = viewModel, uri = uri)
+            importCsv(
+                context = context,
+                viewModel = viewModel,
+                uri = uri,
+                onFeedbackMessage = { message ->
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(message = message)
+                    }
+                },
+            )
         }
     }
 
@@ -111,8 +122,19 @@ fun MainScreen(
                             text = { Text(text = stringResource(id = R.string.menu_backup)) },
                             onClick = {
                                 isMainMenuExpanded = false
-                                // Commit 4 exibirá feedback explícito de sucesso/erro.
-                                viewModel.exportPostsToCsv(context = context)
+                                viewModel.exportPostsToCsv(context = context) { result ->
+                                    val message = result.fold(
+                                        onSuccess = { file ->
+                                            context.getString(R.string.backup_success, file.absolutePath)
+                                        },
+                                        onFailure = {
+                                            backupErrorMessage
+                                        },
+                                    )
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(message = message)
+                                    }
+                                }
                             },
                         )
                         DropdownMenuItem(
@@ -196,10 +218,26 @@ private fun importCsv(
     context: android.content.Context,
     viewModel: PostViewModel,
     uri: Uri,
+    onFeedbackMessage: (String) -> Unit,
 ) {
-    // Commit 3 conecta fluxo de restauração. Commit 4 adicionará feedback ao usuário.
     viewModel.importPostsFromCsv(
         context = context,
         csvUri = uri,
+        onResult = { result ->
+            val message = result.fold(
+                onSuccess = { importResult: CsvImportResult ->
+                    context.getString(
+                        R.string.restore_success,
+                        importResult.importedCount,
+                        importResult.skippedDuplicates,
+                        importResult.invalidRows,
+                    )
+                },
+                onFailure = {
+                    context.getString(R.string.restore_error)
+                },
+            )
+            onFeedbackMessage(message)
+        },
     )
 }

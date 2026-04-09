@@ -13,6 +13,10 @@
     <string name="filter_today">Hoje</string>
     <string name="menu_backup">Backup</string>
     <string name="menu_restore">Restaurar</string>
+    <string name="backup_success">Backup salvo em: %1$s</string>
+    <string name="backup_error">Falha ao gerar backup CSV.</string>
+    <string name="restore_success">Restauracao concluida. Importados: %1$d, duplicados: %2$d, invalidos: %3$d.</string>
+    <string name="restore_error">Falha ao restaurar CSV.</string>
 
     <string name="empty_posts_default">Nenhum post ainda.\nToque em + para criar o primeiro!</string>
     <string name="empty_posts_filtered">Nenhum post nesta data.\nTente outro dia ou remova o filtro.</string>
