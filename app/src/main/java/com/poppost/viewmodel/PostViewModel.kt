@@ -4,12 +4,10 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.poppost.data.repository.PostCsvBackupService
 import com.poppost.data.repository.PostCsvRestoreService
 import com.poppost.data.repository.PostRepository
 import com.poppost.data.repository.CsvImportResult
 import com.poppost.domain.model.Post
-import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -31,7 +29,6 @@ class PostViewModel(
     private val repository: PostRepository
 ) : ViewModel() {
 
-    private val csvBackupService = PostCsvBackupService()
     private val csvRestoreService = PostCsvRestoreService()
 
     data class ArchivedUiState(
@@ -185,18 +182,6 @@ class PostViewModel(
         }
     }
 
-    fun exportPostsToCsv(
-        context: Context,
-        onResult: (Result<File>) -> Unit = {},
-    ) {
-        viewModelScope.launch {
-            val result = runCatching {
-                val allPosts = repository.getAllPostsSnapshot()
-                csvBackupService.exportAllPosts(context = context, posts = allPosts)
-            }
-            onResult(result)
-        }
-    }
 
     fun importPostsFromCsv(
         context: Context,

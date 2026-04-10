@@ -1,6 +1,7 @@
 package com.poppost.ui.main
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
+import java.time.LocalDate
 
 
 /**
@@ -73,11 +75,23 @@ fun MainScreen(
     val posts by viewModel.activePosts.collectAsState()
     val selectedDate by viewModel.activeDateFilter.collectAsState()
     val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
-    val backupErrorMessage = stringResource(id = R.string.backup_error)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     var isMainMenuExpanded by remember { mutableStateOf(false) }
+
+    val createCsvBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv"),
+    ) { uri ->
+        if (uri != null) {
+            Log.d(BACKUP_LOG_TAG, "Backup destination selected: $uri")
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(message = BACKUP_DESTINATION_SELECTED_MESSAGE)
+            }
+        } else {
+            Log.d(BACKUP_LOG_TAG, "Backup flow canceled by user")
+        }
+    }
 
     val csvRestoreLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -138,19 +152,9 @@ fun MainScreen(
                             text = { Text(text = stringResource(id = R.string.menu_backup)) },
                             onClick = {
                                 isMainMenuExpanded = false
-                                viewModel.exportPostsToCsv(context = context) { result ->
-                                    val message = result.fold(
-                                        onSuccess = { file ->
-                                            context.getString(R.string.backup_success, file.absolutePath)
-                                        },
-                                        onFailure = {
-                                            backupErrorMessage
-                                        },
-                                    )
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(message = message)
-                                    }
-                                }
+                                // SAF sugere nome inicial, mas o usuario decide o destino final.
+                                val suggestedName = "poppost_backup_${LocalDate.now()}.csv"
+                                createCsvBackupLauncher.launch(suggestedName)
                             },
                         )
                         DropdownMenuItem(
@@ -229,6 +233,9 @@ fun MainScreen(
         }
     }
 }
+
+private const val BACKUP_LOG_TAG = "PopPostBackup"
+private const val BACKUP_DESTINATION_SELECTED_MESSAGE = "Destino do backup selecionado."
 
 private fun importCsv(
     context: android.content.Context,
