@@ -205,7 +205,7 @@ fun MainScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            painter = painterResource(id = R.mipmap.ic_launcher_round),
+                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                             contentDescription = stringResource(id = R.string.cd_app_topbar_icon),
                             modifier = Modifier.size(24.dp),
                             tint = androidx.compose.ui.graphics.Color.Unspecified,
