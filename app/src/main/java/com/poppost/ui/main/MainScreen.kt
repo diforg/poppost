@@ -2,6 +2,7 @@ package com.poppost.ui.main
 
 import android.net.Uri
 import android.util.Log
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -76,6 +77,7 @@ fun MainScreen(
     val selectedDate by viewModel.activeDateFilter.collectAsState()
     val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
     val backupErrorMessage = stringResource(id = R.string.backup_error)
+    val restoreInvalidCsvMessage = stringResource(id = R.string.restore_error_invalid_csv)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -110,6 +112,7 @@ fun MainScreen(
                 context = context,
                 viewModel = viewModel,
                 uri = uri,
+                restoreInvalidCsvMessage = restoreInvalidCsvMessage,
                 onFeedbackMessage = { message ->
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(message = message)
@@ -258,7 +261,9 @@ private fun exportCsv(
         onResult = { result ->
             val message = result.fold(
                 onSuccess = {
-                    context.getString(R.string.backup_success, uri.toString())
+                    val backupName = context.resolveDisplayName(uri)
+                    val backupLocation = uri.toString()
+                    context.getString(R.string.backup_success, backupName, backupLocation)
                 },
                 onFailure = {
                     backupErrorMessage
@@ -273,6 +278,7 @@ private fun importCsv(
     context: android.content.Context,
     viewModel: PostViewModel,
     uri: Uri,
+    restoreInvalidCsvMessage: String,
     onFeedbackMessage: (String) -> Unit,
 ) {
     viewModel.importPostsFromCsv(
@@ -281,18 +287,33 @@ private fun importCsv(
         onResult = { result ->
             val message = result.fold(
                 onSuccess = { importResult: CsvImportResult ->
-                    context.getString(
-                        R.string.restore_success,
-                        importResult.importedCount,
-                        importResult.skippedDuplicates,
-                        importResult.invalidRows,
-                    )
+                    if (importResult.importedCount == 0 && importResult.invalidRows > 0) {
+                        restoreInvalidCsvMessage
+                    } else {
+                        context.getString(R.string.restore_success_count, importResult.importedCount)
+                    }
                 },
                 onFailure = {
-                    context.getString(R.string.restore_error)
+                    restoreInvalidCsvMessage
                 },
             )
             onFeedbackMessage(message)
         },
     )
 }
+
+private fun android.content.Context.resolveDisplayName(uri: Uri): String {
+    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (columnIndex >= 0 && cursor.moveToFirst()) {
+                val displayName = cursor.getString(columnIndex)
+                if (!displayName.isNullOrBlank()) {
+                    return displayName
+                }
+            }
+        }
+
+    return uri.lastPathSegment ?: "poppost_backup.csv"
+}
+
