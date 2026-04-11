@@ -1,6 +1,11 @@
 package com.poppost.ui.main
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.util.Log
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +57,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
+import androidx.core.content.ContextCompat
+import java.time.LocalDate
 
 
 /**
@@ -74,19 +81,53 @@ fun MainScreen(
     val selectedDate by viewModel.activeDateFilter.collectAsState()
     val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
     val backupErrorMessage = stringResource(id = R.string.backup_error)
+    val restoreInvalidCsvMessage = stringResource(id = R.string.restore_error_invalid_csv)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     var isMainMenuExpanded by remember { mutableStateOf(false) }
+    var pendingStorageAction by remember { mutableStateOf<PendingStorageAction?>(null) }
+
+    val createCsvBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv"),
+    ) { uri ->
+        if (uri != null) {
+            Log.d(BACKUP_LOG_TAG, "Backup destination selected: $uri")
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.file_selected, context.resolveDisplayName(uri)),
+                )
+            }
+            exportCsv(
+                context = context,
+                viewModel = viewModel,
+                uri = uri,
+                backupErrorMessage = backupErrorMessage,
+                onFeedbackMessage = { message ->
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(message = message)
+                    }
+                },
+            )
+        } else {
+            Log.d(BACKUP_LOG_TAG, "Backup flow canceled by user")
+        }
+    }
 
     val csvRestoreLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.file_selected, context.resolveDisplayName(uri)),
+                )
+            }
             importCsv(
                 context = context,
                 viewModel = viewModel,
                 uri = uri,
+                restoreInvalidCsvMessage = restoreInvalidCsvMessage,
                 onFeedbackMessage = { message ->
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(message = message)
@@ -96,6 +137,67 @@ fun MainScreen(
         }
     }
 
+    // Verifica se todas as permissões legadas estão concedidas (Android 9 e abaixo)
+    fun hasStoragePermissions(): Boolean {
+        return LEGACY_STORAGE_PERMISSIONS.all { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    // Lança a ação SAF após validação de permissões
+    fun launchSafAction(action: PendingStorageAction) {
+        when (action) {
+            PendingStorageAction.BACKUP -> {
+                val suggestedName = "poppost_backup_${LocalDate.now()}.csv"
+                createCsvBackupLauncher.launch(suggestedName)
+            }
+            PendingStorageAction.RESTORE -> {
+                csvRestoreLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+            }
+        }
+    }
+
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grantedMap ->
+        val allGranted = LEGACY_STORAGE_PERMISSIONS.all { permission -> grantedMap[permission] == true }
+        val actionToRun = pendingStorageAction
+        pendingStorageAction = null
+
+        if (allGranted && actionToRun != null) {
+            launchSafAction(actionToRun)
+        } else {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.storage_permission_denied)
+                )
+            }
+        }
+    }
+
+    fun requestStoragePermissionsIfNeeded(action: PendingStorageAction) {
+        // Android 10+: SAF não precisa de permissões extras
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            launchSafAction(action)
+            return
+        }
+
+        // Android 9 e abaixo: verificar permissões
+        if (hasStoragePermissions()) {
+            launchSafAction(action)
+            return
+        }
+
+        // Permissões não concedidas: solicitar com rationale
+        pendingStorageAction = action
+        coroutineScope.launch {
+            snackbarHostState.showSnackbar(
+                message = context.getString(R.string.storage_permission_rationale)
+            )
+        }
+        storagePermissionLauncher.launch(LEGACY_STORAGE_PERMISSIONS)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -103,7 +205,7 @@ fun MainScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            painter = painterResource(id = R.mipmap.ic_launcher_round),
+                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                             contentDescription = stringResource(id = R.string.cd_app_topbar_icon),
                             modifier = Modifier.size(24.dp),
                             tint = androidx.compose.ui.graphics.Color.Unspecified,
@@ -138,26 +240,14 @@ fun MainScreen(
                             text = { Text(text = stringResource(id = R.string.menu_backup)) },
                             onClick = {
                                 isMainMenuExpanded = false
-                                viewModel.exportPostsToCsv(context = context) { result ->
-                                    val message = result.fold(
-                                        onSuccess = { file ->
-                                            context.getString(R.string.backup_success, file.absolutePath)
-                                        },
-                                        onFailure = {
-                                            backupErrorMessage
-                                        },
-                                    )
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(message = message)
-                                    }
-                                }
+                                requestStoragePermissionsIfNeeded(PendingStorageAction.BACKUP)
                             },
                         )
                         DropdownMenuItem(
                             text = { Text(text = stringResource(id = R.string.menu_restore)) },
                             onClick = {
                                 isMainMenuExpanded = false
-                                csvRestoreLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+                                requestStoragePermissionsIfNeeded(PendingStorageAction.RESTORE)
                             },
                         )
                     }
@@ -230,10 +320,48 @@ fun MainScreen(
     }
 }
 
+private const val BACKUP_LOG_TAG = "PopPostBackup"
+private val LEGACY_STORAGE_PERMISSIONS = arrayOf(
+    Manifest.permission.READ_EXTERNAL_STORAGE,
+    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+)
+
+private enum class PendingStorageAction {
+    BACKUP,
+    RESTORE,
+}
+
+private fun exportCsv(
+    context: android.content.Context,
+    viewModel: PostViewModel,
+    uri: Uri,
+    backupErrorMessage: String,
+    onFeedbackMessage: (String) -> Unit,
+) {
+    viewModel.exportPostsToCsv(
+        context = context,
+        csvUri = uri,
+        onResult = { result ->
+            val message = result.fold(
+                onSuccess = {
+                    val backupName = context.resolveDisplayName(uri)
+                    val backupLocation = uri.toString()
+                    context.getString(R.string.backup_success, backupName, backupLocation)
+                },
+                onFailure = {
+                    backupErrorMessage
+                },
+            )
+            onFeedbackMessage(message)
+        },
+    )
+}
+
 private fun importCsv(
     context: android.content.Context,
     viewModel: PostViewModel,
     uri: Uri,
+    restoreInvalidCsvMessage: String,
     onFeedbackMessage: (String) -> Unit,
 ) {
     viewModel.importPostsFromCsv(
@@ -242,18 +370,33 @@ private fun importCsv(
         onResult = { result ->
             val message = result.fold(
                 onSuccess = { importResult: CsvImportResult ->
-                    context.getString(
-                        R.string.restore_success,
-                        importResult.importedCount,
-                        importResult.skippedDuplicates,
-                        importResult.invalidRows,
-                    )
+                    if (importResult.importedCount == 0 && importResult.invalidRows > 0) {
+                        restoreInvalidCsvMessage
+                    } else {
+                        context.getString(R.string.restore_success_count, importResult.importedCount)
+                    }
                 },
                 onFailure = {
-                    context.getString(R.string.restore_error)
+                    restoreInvalidCsvMessage
                 },
             )
             onFeedbackMessage(message)
         },
     )
 }
+
+private fun android.content.Context.resolveDisplayName(uri: Uri): String {
+    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (columnIndex >= 0 && cursor.moveToFirst()) {
+                val displayName = cursor.getString(columnIndex)
+                if (!displayName.isNullOrBlank()) {
+                    return displayName
+                }
+            }
+        }
+
+    return uri.lastPathSegment ?: "poppost_backup.csv"
+}
+
