@@ -14,6 +14,7 @@
     <string name="filter_today">Hoje</string>
     <string name="menu_backup">Backup</string>
     <string name="menu_restore">Restaurar</string>
+    <string name="file_selected">Arquivo selecionado: %1$s</string>
     <string name="backup_success">Backup salvo: %1$s (%2$s)</string>
     <string name="backup_error">Falha ao gerar backup CSV.</string>
     <string name="restore_success_count">Restauracao concluida. Posts restaurados: %1$d.</string>

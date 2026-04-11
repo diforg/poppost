@@ -88,6 +88,11 @@ fun MainScreen(
     ) { uri ->
         if (uri != null) {
             Log.d(BACKUP_LOG_TAG, "Backup destination selected: $uri")
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.file_selected, context.resolveDisplayName(uri)),
+                )
+            }
             exportCsv(
                 context = context,
                 viewModel = viewModel,
@@ -108,6 +113,11 @@ fun MainScreen(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.file_selected, context.resolveDisplayName(uri)),
+                )
+            }
             importCsv(
                 context = context,
                 viewModel = viewModel,
