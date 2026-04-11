@@ -1,6 +1,9 @@
 package com.poppost.ui.main
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -54,6 +57,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
+import androidx.core.content.ContextCompat
 import java.time.LocalDate
 
 
@@ -82,6 +86,7 @@ fun MainScreen(
     val coroutineScope = rememberCoroutineScope()
 
     var isMainMenuExpanded by remember { mutableStateOf(false) }
+    var pendingStorageAction by remember { mutableStateOf<PendingStorageAction?>(null) }
 
     val createCsvBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/csv"),
@@ -132,6 +137,67 @@ fun MainScreen(
         }
     }
 
+    // Verifica se todas as permissões legadas estão concedidas (Android 9 e abaixo)
+    fun hasStoragePermissions(): Boolean {
+        return LEGACY_STORAGE_PERMISSIONS.all { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    // Lança a ação SAF após validação de permissões
+    fun launchSafAction(action: PendingStorageAction) {
+        when (action) {
+            PendingStorageAction.BACKUP -> {
+                val suggestedName = "poppost_backup_${LocalDate.now()}.csv"
+                createCsvBackupLauncher.launch(suggestedName)
+            }
+            PendingStorageAction.RESTORE -> {
+                csvRestoreLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+            }
+        }
+    }
+
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grantedMap ->
+        val allGranted = LEGACY_STORAGE_PERMISSIONS.all { permission -> grantedMap[permission] == true }
+        val actionToRun = pendingStorageAction
+        pendingStorageAction = null
+
+        if (allGranted && actionToRun != null) {
+            launchSafAction(actionToRun)
+        } else {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.storage_permission_denied)
+                )
+            }
+        }
+    }
+
+    fun requestStoragePermissionsIfNeeded(action: PendingStorageAction) {
+        // Android 10+: SAF não precisa de permissões extras
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            launchSafAction(action)
+            return
+        }
+
+        // Android 9 e abaixo: verificar permissões
+        if (hasStoragePermissions()) {
+            launchSafAction(action)
+            return
+        }
+
+        // Permissões não concedidas: solicitar com rationale
+        pendingStorageAction = action
+        coroutineScope.launch {
+            snackbarHostState.showSnackbar(
+                message = context.getString(R.string.storage_permission_rationale)
+            )
+        }
+        storagePermissionLauncher.launch(LEGACY_STORAGE_PERMISSIONS)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -174,16 +240,14 @@ fun MainScreen(
                             text = { Text(text = stringResource(id = R.string.menu_backup)) },
                             onClick = {
                                 isMainMenuExpanded = false
-                                // SAF sugere nome inicial, mas o usuario decide o destino final.
-                                val suggestedName = "poppost_backup_${LocalDate.now()}.csv"
-                                createCsvBackupLauncher.launch(suggestedName)
+                                requestStoragePermissionsIfNeeded(PendingStorageAction.BACKUP)
                             },
                         )
                         DropdownMenuItem(
                             text = { Text(text = stringResource(id = R.string.menu_restore)) },
                             onClick = {
                                 isMainMenuExpanded = false
-                                csvRestoreLauncher.launch(arrayOf("text/csv", "text/comma-separated-values"))
+                                requestStoragePermissionsIfNeeded(PendingStorageAction.RESTORE)
                             },
                         )
                     }
@@ -257,6 +321,15 @@ fun MainScreen(
 }
 
 private const val BACKUP_LOG_TAG = "PopPostBackup"
+private val LEGACY_STORAGE_PERMISSIONS = arrayOf(
+    Manifest.permission.READ_EXTERNAL_STORAGE,
+    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+)
+
+private enum class PendingStorageAction {
+    BACKUP,
+    RESTORE,
+}
 
 private fun exportCsv(
     context: android.content.Context,

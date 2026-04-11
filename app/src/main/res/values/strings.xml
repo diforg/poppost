@@ -14,6 +14,8 @@
     <string name="filter_today">Hoje</string>
     <string name="menu_backup">Backup</string>
     <string name="menu_restore">Restaurar</string>
+    <string name="storage_permission_rationale">Para Android 9 e abaixo, permita acesso ao armazenamento para usar o seletor de backup/restauracao.</string>
+    <string name="storage_permission_denied">Permissão de armazenamento negada. Não foi possível abrir o seletor.</string>
     <string name="file_selected">Arquivo selecionado: %1$s</string>
     <string name="backup_success">Backup salvo: %1$s (%2$s)</string>
     <string name="backup_error">Falha ao gerar backup CSV.</string>
