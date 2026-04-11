@@ -75,6 +75,7 @@ fun MainScreen(
     val posts by viewModel.activePosts.collectAsState()
     val selectedDate by viewModel.activeDateFilter.collectAsState()
     val archivedSnackbarMessage = stringResource(id = R.string.snackbar_post_archived)
+    val backupErrorMessage = stringResource(id = R.string.backup_error)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -85,9 +86,17 @@ fun MainScreen(
     ) { uri ->
         if (uri != null) {
             Log.d(BACKUP_LOG_TAG, "Backup destination selected: $uri")
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(message = BACKUP_DESTINATION_SELECTED_MESSAGE)
-            }
+            exportCsv(
+                context = context,
+                viewModel = viewModel,
+                uri = uri,
+                backupErrorMessage = backupErrorMessage,
+                onFeedbackMessage = { message ->
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(message = message)
+                    }
+                },
+            )
         } else {
             Log.d(BACKUP_LOG_TAG, "Backup flow canceled by user")
         }
@@ -235,7 +244,30 @@ fun MainScreen(
 }
 
 private const val BACKUP_LOG_TAG = "PopPostBackup"
-private const val BACKUP_DESTINATION_SELECTED_MESSAGE = "Destino do backup selecionado."
+
+private fun exportCsv(
+    context: android.content.Context,
+    viewModel: PostViewModel,
+    uri: Uri,
+    backupErrorMessage: String,
+    onFeedbackMessage: (String) -> Unit,
+) {
+    viewModel.exportPostsToCsv(
+        context = context,
+        csvUri = uri,
+        onResult = { result ->
+            val message = result.fold(
+                onSuccess = {
+                    context.getString(R.string.backup_success, uri.toString())
+                },
+                onFailure = {
+                    backupErrorMessage
+                },
+            )
+            onFeedbackMessage(message)
+        },
+    )
+}
 
 private fun importCsv(
     context: android.content.Context,
