@@ -9,6 +9,7 @@ data class PostEntity(
     @PrimaryKey val id: String,
     val content: String,
     val createdAt: Long,
+    val date: Long,
     val isArchived: Boolean
 )
 
@@ -25,6 +26,7 @@ fun Post.toEntity(): PostEntity =
         id = id,
         content = content,
         createdAt = createdAt,
+        date = createdAt,
         isArchived = isArchived
     )
 
