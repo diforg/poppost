@@ -21,12 +21,12 @@ fun PostEntity.toDomain(): Post =
         isArchived = isArchived
     )
 
-fun Post.toEntity(): PostEntity =
+fun Post.toEntity(date: Long = createdAt): PostEntity =
     PostEntity(
         id = id,
         content = content,
         createdAt = createdAt,
-        date = createdAt,
+        date = date,
         isArchived = isArchived
     )
 

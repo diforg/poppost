@@ -20,8 +20,8 @@ class PostRepository(
                 .filter { it.isArchived }
         }
 
-    suspend fun insert(post: Post) {
-        postDao.insert(post.toEntity())
+    suspend fun insert(post: Post, date: Long = post.createdAt) {
+        postDao.insert(post.toEntity(date = date))
     }
 
     suspend fun insertAll(posts: List<Post>) {

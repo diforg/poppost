@@ -65,6 +65,9 @@ class PostViewModel(
     private val _createPostUiState = MutableStateFlow(CreatePostUiState())
     val createPostUiState: StateFlow<CreatePostUiState> = _createPostUiState.asStateFlow()
 
+    private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
+    val selectedDate: StateFlow<Long> = _selectedDate.asStateFlow()
+
     private val _createPostEvents = MutableSharedFlow<CreatePostUiEvent>(extraBufferCapacity = 1)
     val createPostEvents: SharedFlow<CreatePostUiEvent> = _createPostEvents.asSharedFlow()
 
@@ -104,6 +107,10 @@ class PostViewModel(
         }
     }
 
+    fun onDateSelected(millis: Long) {
+        _selectedDate.value = millis
+    }
+
     fun onCreatePostSubmit() {
         if (_createPostUiState.value.isSubmitting) {
             return
@@ -132,9 +139,10 @@ class PostViewModel(
         _createPostUiState.update { it.copy(isSubmitting = true, validationError = null) }
         viewModelScope.launch {
             runCatching {
-                repository.insert(post)
+                repository.insert(post = post, date = selectedDate.value)
             }.onSuccess {
                 _createPostUiState.value = CreatePostUiState()
+                _selectedDate.value = System.currentTimeMillis()
                 _createPostEvents.emit(CreatePostUiEvent.Success)
             }.onFailure {
                 _createPostUiState.update {
@@ -163,6 +171,7 @@ class PostViewModel(
         // Não reseta se uma submissão está em andamento para não interromper o fluxo
         if (!_createPostUiState.value.isSubmitting) {
             _createPostUiState.value = CreatePostUiState()
+            _selectedDate.value = System.currentTimeMillis()
         }
     }
 
