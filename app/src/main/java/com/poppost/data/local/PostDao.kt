@@ -14,13 +14,13 @@ interface PostDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(posts: List<PostEntity>)
 
-    @Query("SELECT * FROM posts WHERE isArchived = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM posts WHERE isArchived = 0 ORDER BY date DESC")
     fun getAllActive(): Flow<List<PostEntity>>
 
-    @Query("SELECT * FROM posts WHERE isArchived != 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM posts WHERE isArchived != 0 ORDER BY date DESC")
     fun getAllArchived(): Flow<List<PostEntity>>
 
-    @Query("SELECT * FROM posts ORDER BY createdAt DESC")
+    @Query("SELECT * FROM posts ORDER BY date DESC")
     suspend fun getAllPostsSnapshot(): List<PostEntity>
 
     @Query("UPDATE posts SET isArchived = :isArchived WHERE id = :id")
