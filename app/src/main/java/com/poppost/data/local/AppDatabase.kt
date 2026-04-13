@@ -19,11 +19,11 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "poppost.db"
-                ).build()
+                )
+                    .build()
                 INSTANCE = instance
                 instance
             }
         }
     }
 }
-

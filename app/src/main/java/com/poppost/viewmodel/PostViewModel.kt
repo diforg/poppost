@@ -9,9 +9,9 @@ import com.poppost.data.repository.PostCsvRestoreService
 import com.poppost.data.repository.PostRepository
 import com.poppost.data.repository.CsvImportResult
 import com.poppost.domain.model.Post
-import java.time.Instant
+import com.poppost.domain.model.toDateOnlyLocalDate
+import com.poppost.domain.model.todayEpochDay
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -65,6 +65,9 @@ class PostViewModel(
     private val _createPostUiState = MutableStateFlow(CreatePostUiState())
     val createPostUiState: StateFlow<CreatePostUiState> = _createPostUiState.asStateFlow()
 
+    private val _selectedDate = MutableStateFlow(todayEpochDay())
+    val selectedDate: StateFlow<Long> = _selectedDate.asStateFlow()
+
     private val _createPostEvents = MutableSharedFlow<CreatePostUiEvent>(extraBufferCapacity = 1)
     val createPostEvents: SharedFlow<CreatePostUiEvent> = _createPostEvents.asSharedFlow()
 
@@ -76,7 +79,7 @@ class PostViewModel(
         if (dateFilter == null) {
             posts
         } else {
-            posts.filter { post -> post.createdAt.toLocalDate() == dateFilter }
+            posts.filter { post -> post.date.toDateOnlyLocalDate() == dateFilter }
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -104,6 +107,10 @@ class PostViewModel(
         }
     }
 
+    fun onDateSelected(dateEpochDay: Long) {
+        _selectedDate.value = dateEpochDay
+    }
+
     fun onCreatePostSubmit() {
         if (_createPostUiState.value.isSubmitting) {
             return
@@ -126,15 +133,17 @@ class PostViewModel(
             id = UUID.randomUUID().toString(),
             content = normalizedContent,
             createdAt = System.currentTimeMillis(),
+            date = selectedDate.value,
             isArchived = false,
         )
 
         _createPostUiState.update { it.copy(isSubmitting = true, validationError = null) }
         viewModelScope.launch {
             runCatching {
-                repository.insert(post)
+                repository.insert(post = post)
             }.onSuccess {
                 _createPostUiState.value = CreatePostUiState()
+                _selectedDate.value = selectedDate.value
                 _createPostEvents.emit(CreatePostUiEvent.Success)
             }.onFailure {
                 _createPostUiState.update {
@@ -163,6 +172,7 @@ class PostViewModel(
         // Não reseta se uma submissão está em andamento para não interromper o fluxo
         if (!_createPostUiState.value.isSubmitting) {
             _createPostUiState.value = CreatePostUiState()
+            _selectedDate.value = todayEpochDay()
         }
     }
 
@@ -234,11 +244,6 @@ class PostViewModel(
         _activeDateFilter.value = date
     }
 
-    private fun Long.toLocalDate(): LocalDate {
-        return Instant.ofEpochMilli(this)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-    }
 
     private fun validateNormalizedContent(content: String): CreatePostValidationError? {
         return when {

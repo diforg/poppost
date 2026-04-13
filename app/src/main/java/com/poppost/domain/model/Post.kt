@@ -7,6 +7,7 @@ data class Post(
     val id: String,
     val content: String,
     val createdAt: Long,
+    val date: Long,
     val isArchived: Boolean
 )
 
