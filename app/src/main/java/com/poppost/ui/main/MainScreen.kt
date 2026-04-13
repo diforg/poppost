@@ -46,7 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.poppost.R
 import com.poppost.data.repository.CsvImportResult
-import com.poppost.ui.components.DateFilterChips
+import com.poppost.ui.components.DatePickerBar
 import com.poppost.ui.components.EmptyPostsMessage
 import com.poppost.ui.components.PostCard
 import com.poppost.viewmodel.PostViewModel
@@ -279,8 +279,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            // Chips de filtro por data – últimos 7 dias
-            DateFilterChips(
+            DatePickerBar(
                 selectedDate = selectedDate,
                 onDateSelected = viewModel::filterByDate,
                 modifier = Modifier
