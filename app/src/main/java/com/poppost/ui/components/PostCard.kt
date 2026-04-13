@@ -1,6 +1,7 @@
 package com.poppost.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.poppost.R
@@ -45,9 +47,6 @@ fun PostCard(
         .toDateOnlyLocalDate()
         .format(dateFormatter)
 
-    // combinedClickable agrega click e long-press num único modificador.
-    // É aplicado apenas quando pelo menos um dos callbacks é fornecido,
-    // para manter cards não-interativos quando nenhuma ação é esperada.
     val interactionModifier = if (onClick != null || onLongClick != null) {
         val longPressLabel = stringResource(R.string.cd_long_press_archived_post)
         val clickLabel = stringResource(R.string.cd_archive_post)
@@ -66,7 +65,7 @@ fun PostCard(
             .fillMaxWidth()
             .then(interactionModifier),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            containerColor = Color(0xFFD2946E),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -74,13 +73,13 @@ fun PostCard(
             Text(
                 text = post.content,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color(0xFF4A4543),
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = formattedDate,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color(0xFF4A4543),
             )
         }
     }
