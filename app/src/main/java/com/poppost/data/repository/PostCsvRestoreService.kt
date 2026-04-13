@@ -3,6 +3,8 @@ package com.poppost.data.repository
 import android.content.Context
 import android.net.Uri
 import com.poppost.domain.model.Post
+import com.poppost.domain.model.normalizeDateStorage
+import java.time.LocalDate
 
 /**
  * Resultado da importacao de CSV.
@@ -82,30 +84,32 @@ class PostCsvRestoreService {
 
     private fun isHeaderRecord(record: String): Boolean {
         val fields = parseCsvRecord(record)
-        if (fields.size < 4) return false
+        if (fields.size < 5) return false
 
-        val header = fields.take(4).map { it.trim().lowercase() }
+        val header = fields.take(5).map { it.trim().lowercase() }
         return header[0] == "id" &&
             header[1] == "content" &&
             header[2] == "createdat" &&
-            header[3] == "isarchived"
+            header[3] == "date" &&
+            header[4] == "isarchived"
     }
 
     private fun parsePostRecord(record: String): Post? {
         val fields = parseCsvRecord(record)
-        if (fields.size < 4) return null
+        if (fields.size < 5) return null
 
         val id = fields[0].trim()
         val content = fields[1]
         val createdAt = fields[2].trim().toLongOrNull()
-        val isArchived = fields[3].trim().toBooleanStrictOrNull()
-            ?: when (fields[3].trim()) {
+        val date = parseDateField(fields[3])
+        val isArchived = fields[4].trim().toBooleanStrictOrNull()
+            ?: when (fields[4].trim()) {
                 "1" -> true
                 "0" -> false
                 else -> null
             }
 
-        if (id.isBlank() || createdAt == null || isArchived == null) {
+        if (id.isBlank() || createdAt == null || date == null || isArchived == null) {
             return null
         }
 
@@ -113,8 +117,19 @@ class PostCsvRestoreService {
             id = id,
             content = content,
             createdAt = createdAt,
+            date = date,
             isArchived = isArchived,
         )
+    }
+
+    private fun parseDateField(raw: String): Long? {
+        val value = raw.trim()
+        val numeric = value.toLongOrNull()
+        if (numeric != null) {
+            return numeric.normalizeDateStorage()
+        }
+
+        return runCatching { LocalDate.parse(value).toEpochDay() }.getOrNull()
     }
 
     /**

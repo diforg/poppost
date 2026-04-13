@@ -5,7 +5,7 @@ import com.poppost.data.local.PostEntity
 import com.poppost.data.repository.PostRepository
 import com.poppost.domain.model.Post
 import java.time.LocalDate
-import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -62,6 +62,7 @@ class PostViewModelTest {
             id = "post-1",
             content = "Conteudo",
             createdAt = System.currentTimeMillis(),
+            date = LocalDate.now().toEpochDay(),
             isArchived = false
         )
         repository.insert(post)
@@ -91,7 +92,8 @@ class PostViewModelTest {
             Post(
                 id = "a",
                 content = "Hoje",
-                createdAt = dayA.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                createdAt = System.currentTimeMillis(),
+                date = dayA.toEpochDay(),
                 isArchived = false
             )
         )
@@ -99,7 +101,8 @@ class PostViewModelTest {
             Post(
                 id = "b",
                 content = "Ontem",
-                createdAt = dayB.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                createdAt = System.currentTimeMillis(),
+                date = dayB.toEpochDay(),
                 isArchived = false
             )
         )
@@ -229,6 +232,33 @@ class PostViewModelTest {
     }
 
     @Test
+    fun filterByDate_acceptsLegacyMillisInDateFieldWithoutTimezoneShift() = runTest {
+        val dao = FakePostDao()
+        val repository = PostRepository(dao)
+        val selectedDay = LocalDate.of(2026, 4, 13)
+        val legacyMillisDate = selectedDay.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+        repository.insert(
+            Post(
+                id = "legacy",
+                content = "Importado legado",
+                createdAt = System.currentTimeMillis(),
+                date = legacyMillisDate,
+                isArchived = false,
+            )
+        )
+
+        val viewModel = PostViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.filterByDate(selectedDay)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.activePosts.value.size)
+        assertEquals("legacy", viewModel.activePosts.value.first().id)
+    }
+
+    @Test
     fun resetCreatePostState_whenNotSubmitting_clearsAllFields() = runTest {
         val viewModel = buildViewModel()
 
@@ -280,7 +310,7 @@ private class FakePostDao : PostDao {
     override fun getAllArchived(): Flow<List<PostEntity>> = archivedPostsFlow
 
     override suspend fun getAllPostsSnapshot(): List<PostEntity> {
-        return posts.sortedByDescending { it.createdAt }
+        return posts.sortedByDescending { it.date }
     }
 
     override suspend fun updateArchiveStatus(id: String, isArchived: Boolean): Int {
@@ -304,11 +334,11 @@ private class FakePostDao : PostDao {
     private fun publish() {
         activePostsFlow.value = posts
             .filter { !it.isArchived }
-            .sortedByDescending { it.createdAt }
+            .sortedByDescending { it.date }
 
         archivedPostsFlow.value = posts
             .filter { it.isArchived }
-            .sortedByDescending { it.createdAt }
+            .sortedByDescending { it.date }
     }
 }
 

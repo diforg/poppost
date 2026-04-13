@@ -46,9 +46,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.poppost.R
+import com.poppost.domain.model.epochDayToUtcMillis
+import com.poppost.domain.model.toDateOnlyLocalDate
+import com.poppost.domain.model.utcMillisToEpochDay
 import com.poppost.viewmodel.PostViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
@@ -70,9 +72,10 @@ fun CreatePostScreen(
     var showDatePicker by remember { mutableStateOf(false) }
 
     val formattedSelectedDate = remember(selectedDate) {
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(selectedDate))
+        selectedDate
+            .toDateOnlyLocalDate()
+            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault()))
     }
-
     val errorEmpty = stringResource(R.string.create_post_error_empty)
     val errorTooLong = stringResource(R.string.create_post_error_too_long)
     val errorPersistence = stringResource(R.string.create_post_error_persistence)
@@ -107,14 +110,17 @@ fun CreatePostScreen(
 
     if (showDatePicker) {
         val datePickerState = androidx.compose.material3.rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate,
+            initialSelectedDateMillis = selectedDate.epochDayToUtcMillis(),
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.onDateSelected(datePickerState.selectedDateMillis ?: selectedDate)
+                        val selectedEpochDay = datePickerState.selectedDateMillis
+                            ?.utcMillisToEpochDay()
+                            ?: selectedDate
+                        viewModel.onDateSelected(selectedEpochDay)
                         showDatePicker = false
                     }
                 ) {

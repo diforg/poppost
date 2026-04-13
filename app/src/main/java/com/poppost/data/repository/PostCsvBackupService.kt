@@ -3,6 +3,7 @@ package com.poppost.data.repository
 import android.content.Context
 import android.net.Uri
 import com.poppost.domain.model.Post
+import com.poppost.domain.model.toDateOnlyLocalDate
 
 /**
  * Responsavel por gerar CSV de posts e gravar no URI escolhido pelo usuario via SAF.
@@ -25,6 +26,7 @@ class PostCsvBackupService {
                         post.id,
                         post.content,
                         post.createdAt.toString(),
+                        post.date.toDateOnlyLocalDate().toString(),
                         post.isArchived.toString(),
                     ).joinToString(separator = ",") { value -> escapeCsvCell(value) },
                 )
@@ -38,7 +40,7 @@ class PostCsvBackupService {
     }
 
     companion object {
-        private const val CSV_HEADER = "id,content,createdAt,isArchived"
+        private const val CSV_HEADER = "id,content,createdAt,date,isArchived"
     }
 }
 

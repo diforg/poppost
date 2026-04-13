@@ -17,13 +17,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.poppost.R
 import com.poppost.domain.model.Post
-import java.time.Instant
-import java.time.ZoneId
+import com.poppost.domain.model.toDateOnlyLocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val dateFormatter = DateTimeFormatter
-    .ofPattern("d MMM yyyy, HH:mm", Locale.getDefault())
+    .ofPattern("dd/MM/yyyy", Locale.getDefault())
 
 /**
  * Card reutilizável que exibe conteúdo e data formatada de um [Post].
@@ -42,9 +41,8 @@ fun PostCard(
     onClick: ((Post) -> Unit)? = null,
     onLongClick: ((Post) -> Unit)? = null,
 ) {
-    val formattedDate = Instant
-        .ofEpochMilli(post.createdAt)
-        .atZone(ZoneId.systemDefault())
+    val formattedDate = post.date
+        .toDateOnlyLocalDate()
         .format(dateFormatter)
 
     // combinedClickable agrega click e long-press num único modificador.
